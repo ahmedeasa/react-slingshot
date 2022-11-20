@@ -1,24 +1,53 @@
 version: 2.1
 
 commands:
-  print_pipeline_id:
+  save_node_package_to_cache:
     steps:
-      - run: echo $CIRCLE_WORKFLOW_ID 
-
-
+      - save_cache:
+          key:  npm_packages
+          paths: [/node_modules]
+  restore_packages:
+    steps:
+      - restore_chache:
+        - keys:
+          - npm_packages
 
 jobs:
-  to_f_job:
+  build:
+    docker: $defaultImage
+      - image: circleci/node:13.8.0
+    steps:
+      - checkout
+      - run: npm i
+      - run: save_cache
+      - run: npm run lint
+
+
+  test:
+    <<: *defaultImage
     docker:
       - image: circleci/node:13.8.0
     steps:
-      - run: return 1
-      - run:
-          name: on previous failure
-          command: echo the previous job failed
-          when: on_fail
+      - checkout
+      - run: restore_chache
+      - run: npm i
+      - run: npm run test
+
+
+  analyze:
+    <<: *defaultImage
+    steps:
+      - checkout
+      - run: restore_chache
+      - run: npm i
+      - run: npm audit
+  
 
 workflows:
   say-hello-workflow:
     jobs:
-      - to_f_job
+      - build
+      - test:
+          requires: [build]
+      - analyze:
+          requires: [test]
