@@ -5,46 +5,46 @@ commands:
     steps:
       - save_cache:
           key:  npm_packages
-          paths: [/node_modules]
+          paths: 
+            - ./node_modules
   restore_packages:
     steps:
-      - restore_chache:
-        - keys:
-          - npm_packages
+      - restore_cache:
+          keys:
+            - npm_packages
 
 jobs:
   build:
-    docker: $defaultImage
-      - image: circleci/node:13.8.0
+    docker: 
+      - image: &defaultImage circleci/node:13.8.0
     steps:
       - checkout
       - run: npm i
-      - run: save_cache
+      - save_node_package_to_cache
       - run: npm run lint
 
-
   test:
-    <<: *defaultImage
     docker:
-      - image: circleci/node:13.8.0
+      - image: *defaultImage
     steps:
       - checkout
-      - run: restore_chache
+      - restore_packages
       - run: npm i
       - run: npm run test
 
 
   analyze:
-    <<: *defaultImage
+    docker:
+      - image: *defaultImage
     steps:
       - checkout
-      - run: restore_chache
+      - restore_packages
       - run: npm i
       - run: npm audit
   
 
 workflows:
-  say-hello-workflow:
+  default:
     jobs:
       - build
       - test:
